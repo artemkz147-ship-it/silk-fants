@@ -175,7 +175,7 @@ fun MainMenuScreen(
                 Text("Silk Fants", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "v0.2.1 · 18+ · М+Ж",
+                    "v0.2.2 · 18+ · М+Ж",
                     color = TextSoft.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                 )
@@ -756,7 +756,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text("Silk Fants · v0.2.1", color = Accent, fontSize = 14.sp)
+                Text("Silk Fants · v0.2.2", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "Карточная игра фантазий для пары мужчина + женщина.\n" +
