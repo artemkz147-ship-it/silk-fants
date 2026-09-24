@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                                 state = state,
                                 toast = toast,
                                 onWho = { vm.setWhoPlays(it) },
+                                onLevel = { vm.setLevelFilter(it) },
                                 onDone = { vm.markDone() },
                                 onAnother = { vm.drawAnother() },
                                 onBack = { vm.navigate(AppScreen.MAIN_MENU) },
@@ -63,7 +64,7 @@ class MainActivity : ComponentActivity() {
                             )
                             AppScreen.ALL_TASKS -> AllTasksScreen(
                                 state = state,
-                                onFilter = { vm.setIntensityFilter(it) },
+                                onFilter = { vm.setLevelFilter(it) },
                                 onCategoryFilter = { vm.setCategoryFilter(it) },
                                 onBack = { vm.navigate(AppScreen.MAIN_MENU) },
                             )

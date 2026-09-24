@@ -9,12 +9,14 @@ import com.artemkz.silkfants.data.Fantasies
 import com.artemkz.silkfants.data.FantsRepository
 import com.artemkz.silkfants.data.WhoPlays
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FantsViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = FantsRepository(application)
@@ -33,12 +35,22 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                Fantasies.load(getApplication())
+            }
+            _state.update { it.copy(deckLoaded = true) }
             repo.stateFlow.collect { saved ->
                 if (!loaded) {
+                    val level = saved.levelFilter.coerceIn(1, 4)
                     val withDeck = if (saved.deckOrder.isEmpty()) {
-                        saved.copy(deckOrder = shuffledIds(saved.doneIds), deckIndex = 0)
+                        saved.copy(
+                            levelFilter = level,
+                            deckOrder = shuffledIds(level, saved.whoPlays, saved.doneIds),
+                            deckIndex = 0,
+                            deckLoaded = true,
+                        )
                     } else {
-                        saved
+                        saved.copy(levelFilter = level, deckLoaded = true)
                     }
                     _state.value = withDeck
                     loaded = true
@@ -67,12 +79,27 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setWhoPlays(who: WhoPlays) {
-        _state.update { it.copy(whoPlays = who) }
+        _state.update { s ->
+            if (s.whoPlays == who) return@update s
+            val order = shuffledIds(s.levelFilter, who, s.doneIds)
+            s.copy(whoPlays = who, deckOrder = order, deckIndex = 0)
+        }
         schedulePersist()
     }
 
-    fun setIntensityFilter(level: Int) {
-        _state.update { it.copy(intensityFilter = level.coerceIn(0, 3)) }
+    fun setLevelFilter(level: Int) {
+        val lvl = level.coerceIn(0, 4)
+        _state.update { s ->
+            if (s.levelFilter == lvl) return@update s
+            // 0 = «все» only for catalog; play always uses 1–4
+            if (lvl == 0) {
+                s.copy(levelFilter = 0)
+            } else {
+                val order = shuffledIds(lvl, s.whoPlays, s.doneIds)
+                s.copy(levelFilter = lvl, deckOrder = order, deckIndex = 0)
+            }
+        }
+        schedulePersist()
     }
 
     fun setCategoryFilter(category: String) {
@@ -81,15 +108,18 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun ensureDeckAndShowDraw() {
         _state.update { s ->
-            if (s.deckOrder.isEmpty() || s.deckIndex >= s.deckOrder.size) {
-                val order = shuffledIds(s.doneIds)
-                s.copy(deckOrder = order, deckIndex = 0)
-            } else s
+            val level = s.levelFilter.coerceIn(1, 4)
+            val base = if (s.levelFilter == 0) s.copy(levelFilter = level) else s
+            if (base.deckOrder.isEmpty() || base.deckIndex >= base.deckOrder.size) {
+                val order = shuffledIds(level, base.whoPlays, base.doneIds)
+                base.copy(deckOrder = order, deckIndex = 0, levelFilter = level)
+            } else base.copy(levelFilter = level)
         }
-        // If all done, reshuffle fresh
         val s = _state.value
-        if (s.doneIds.size >= Fantasies.ALL.size) {
-            resetSession(reshuffle = true)
+        val pool = Fantasies.filtered(s.levelFilter.coerceIn(1, 4), s.whoPlays)
+        if (pool.isNotEmpty() && pool.all { it.id in s.doneIds }) {
+            // Exhausted filtered pool → reshuffle within level/who
+            resetFilteredDeck()
         } else if (s.currentCard == null || s.currentCard!!.id in s.doneIds) {
             advanceToNextUndone()
         }
@@ -108,11 +138,14 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
         advanceToNextUndone()
         val s = _state.value
         if (s.currentCard == null) {
-            if (s.doneIds.size >= Fantasies.ALL.size) {
-                _toast.value = "Колода закончилась! Сбросьте сессию."
+            val pool = Fantasies.filtered(s.levelFilter.coerceIn(1, 4), s.whoPlays)
+            if (pool.isEmpty()) {
+                _toast.value = "Нет фантов для выбранных фильтров"
+            } else if (pool.all { it.id in s.doneIds }) {
+                _toast.value = "Колода уровня закончилась — перемешиваем"
+                resetFilteredDeck()
             } else {
-                // reshuffle remaining
-                val order = shuffledIds(s.doneIds)
+                val order = shuffledIds(s.levelFilter, s.whoPlays, s.doneIds)
                 _state.update { it.copy(deckOrder = order, deckIndex = 0) }
                 if (_state.value.currentCard == null) {
                     _toast.value = "Нет доступных фантов"
@@ -123,23 +156,40 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resetSession(reshuffle: Boolean = true) {
-        val order = if (reshuffle) Fantasies.ALL.map { it.id }.shuffled() else emptyList()
+        val s = _state.value
+        val level = s.levelFilter.coerceIn(1, 4)
+        val order = if (reshuffle) {
+            Fantasies.filtered(level, s.whoPlays).map { it.id }.shuffled()
+        } else {
+            emptyList()
+        }
         _state.update {
             it.copy(
                 doneIds = emptySet(),
                 deckOrder = order,
                 deckIndex = 0,
+                levelFilter = level,
             )
         }
         _toast.value = "Сессия сброшена"
         schedulePersist()
     }
 
+    private fun resetFilteredDeck() {
+        val s = _state.value
+        val level = s.levelFilter.coerceIn(1, 4)
+        val order = Fantasies.filtered(level, s.whoPlays).map { it.id }.shuffled()
+        _state.update {
+            it.copy(doneIds = emptySet(), deckOrder = order, deckIndex = 0, levelFilter = level)
+        }
+    }
+
     private fun advanceToNextUndone() {
         _state.update { s ->
+            val level = s.levelFilter.coerceIn(1, 4)
             if (s.deckOrder.isEmpty()) {
-                val order = shuffledIds(s.doneIds)
-                return@update s.copy(deckOrder = order, deckIndex = 0)
+                val order = shuffledIds(level, s.whoPlays, s.doneIds)
+                return@update s.copy(deckOrder = order, deckIndex = 0, levelFilter = level)
             }
             var idx = s.deckIndex + 1
             while (idx < s.deckOrder.size) {
@@ -149,7 +199,6 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 idx++
             }
-            // try from start for any leftover
             idx = 0
             while (idx < s.deckOrder.size) {
                 val id = s.deckOrder[idx]
@@ -158,13 +207,15 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 idx++
             }
-            s.copy(deckIndex = s.deckOrder.size) // exhausted
+            s.copy(deckIndex = s.deckOrder.size)
         }
     }
 
-    private fun shuffledIds(exclude: Set<Int>): List<Int> {
-        val remaining = Fantasies.ALL.map { it.id }.filter { it !in exclude }
-        return if (remaining.isEmpty()) Fantasies.ALL.map { it.id }.shuffled()
+    private fun shuffledIds(level: Int, who: WhoPlays, exclude: Set<String>): List<String> {
+        val lvl = level.coerceIn(1, 4)
+        val pool = Fantasies.filtered(lvl, who)
+        val remaining = pool.map { it.id }.filter { it !in exclude }
+        return if (remaining.isEmpty()) pool.map { it.id }.shuffled()
         else remaining.shuffled()
     }
 

@@ -9,22 +9,28 @@ enum class AppScreen {
 }
 
 enum class WhoPlays {
-    PARTNER_A,
-    PARTNER_B,
+    PARTNER_A, // Мужчина
+    PARTNER_B, // Женщина
     BOTH,
 }
 
 data class AppState(
     val ageVerified: Boolean = false,
-    val doneIds: Set<Int> = emptySet(),
-    val deckOrder: List<Int> = emptyList(),
+    val doneIds: Set<String> = emptySet(),
+    val deckOrder: List<String> = emptyList(),
     val deckIndex: Int = 0,
     val whoPlays: WhoPlays = WhoPlays.BOTH,
-    val intensityFilter: Int = 0, // 0 = all, 1–3 = filter
+    /** Play / catalog level 1–4; 0 in catalog means «all». Default play level = 1. */
+    val levelFilter: Int = 1,
     val categoryFilter: String = "", // empty = all
+    val deckLoaded: Boolean = false,
 ) {
     val remainingCount: Int
-        get() = Fantasies.ALL.size - doneIds.size
+        get() {
+            if (!Fantasies.isLoaded()) return 0
+            val pool = Fantasies.filtered(levelFilter.coerceIn(1, 4), whoPlays)
+            return pool.count { it.id !in doneIds }
+        }
 
     val currentCard: FantasyCard?
         get() {
