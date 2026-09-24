@@ -110,7 +110,7 @@ fun AgeGateScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "Это приложение содержит эротический контент " +
-                            "для взрослых (игры фантазий для пар).\n\n" +
+                            "для взрослых. Только для пары мужчина + женщина.\n\n" +
                             "Подтвердите, что вам исполнилось 18 лет.",
                         color = TextSoft.copy(alpha = 0.85f),
                         textAlign = TextAlign.Center,
@@ -175,7 +175,7 @@ fun MainMenuScreen(
                 Text("Silk Fants", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "v0.2.0 · 18+",
+                    "v0.2.1 · 18+ · М+Ж",
                     color = TextSoft.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                 )
@@ -272,7 +272,7 @@ fun DrawScreen(
                 }
 
                 Text(
-                    "Кто выполняет",
+                    "Кто ведущий (М / Ж)",
                     color = TextSoft.copy(alpha = 0.7f),
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -281,10 +281,10 @@ fun DrawScreen(
                     Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    WhoChip("Партнёр А", state.whoPlays == WhoPlays.PARTNER_A) {
+                    WhoChip("Мужчина", state.whoPlays == WhoPlays.PARTNER_A) {
                         onWho(WhoPlays.PARTNER_A)
                     }
-                    WhoChip("Партнёр Б", state.whoPlays == WhoPlays.PARTNER_B) {
+                    WhoChip("Женщина", state.whoPlays == WhoPlays.PARTNER_B) {
                         onWho(WhoPlays.PARTNER_B)
                     }
                     WhoChip("Для вас двоих", state.whoPlays == WhoPlays.BOTH) {
@@ -359,8 +359,8 @@ private fun WhoChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 private fun whoLabel(who: WhoPlays): String = when (who) {
-    WhoPlays.PARTNER_A -> "Партнёр А"
-    WhoPlays.PARTNER_B -> "Партнёр Б"
+    WhoPlays.PARTNER_A -> "Мужчина"
+    WhoPlays.PARTNER_B -> "Женщина"
     WhoPlays.BOTH -> "Для вас двоих"
 }
 
@@ -689,7 +689,7 @@ fun RulesScreen(onBack: () -> Unit) {
                 )
                 RulesCard(
                     title = "Только 18+",
-                    body = "Приложение предназначено исключительно для взрослых. " +
+                    body = "Приложение только для взрослых и только для пары мужчина + женщина. " +
                         "Не делитесь экраном с несовершеннолетними.",
                 )
                 RulesCard(
@@ -756,10 +756,10 @@ fun AboutScreen(onBack: () -> Unit) {
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text("Silk Fants · v0.2.0", color = Accent, fontSize = 14.sp)
+                Text("Silk Fants · v0.2.1", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Карточная игра фантазий для пар.\n" +
+                    "Карточная игра фантазий для пары мужчина + женщина.\n" +
                         "50 острых эротических заданий без проникновения.\n\n" +
                         "Package: com.artemkz.silkfants\n" +
                         "Kotlin · Jetpack Compose · офлайн\n\n" +
