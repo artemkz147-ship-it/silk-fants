@@ -21,6 +21,7 @@ data class AppState(
     val deckIndex: Int = 0,
     val whoPlays: WhoPlays = WhoPlays.BOTH,
     val intensityFilter: Int = 0, // 0 = all, 1–3 = filter
+    val categoryFilter: String = "", // empty = all
 ) {
     val remainingCount: Int
         get() = Fantasies.ALL.size - doneIds.size

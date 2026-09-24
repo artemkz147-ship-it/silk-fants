@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -174,7 +175,7 @@ fun MainMenuScreen(
                 Text("Silk Fants", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "v0.1.0 · 18+",
+                    "v0.2.0 · 18+",
                     color = TextSoft.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                 )
@@ -478,11 +479,12 @@ private fun PlaceholderGradient(card: FantasyCard, modifier: Modifier = Modifier
 
 private fun categoryEmoji(category: String): String = when (category) {
     "Поцелуи" -> "💋"
+    "Оральные" -> "👅"
     "Массаж" -> "💆"
     "Раздевание" -> "👗"
     "Дразнилки" -> "🔥"
     "Ролевая" -> "🎭"
-    "Чувства" -> "💗"
+    "БДСМ-лайт" -> "⛓️"
     "Игрушки" -> "✨"
     else -> "🌹"
 }
@@ -509,11 +511,14 @@ private fun IntensityBadge(level: Int) {
 fun AllTasksScreen(
     state: AppState,
     onFilter: (Int) -> Unit,
+    onCategoryFilter: (String) -> Unit,
     onBack: () -> Unit,
 ) {
-    val filtered = remember(state.intensityFilter) {
-        if (state.intensityFilter == 0) Fantasies.ALL
-        else Fantasies.ALL.filter { it.intensity == state.intensityFilter }
+    val filtered = remember(state.intensityFilter, state.categoryFilter) {
+        Fantasies.ALL.filter { card ->
+            (state.intensityFilter == 0 || card.intensity == state.intensityFilter) &&
+                (state.categoryFilter.isEmpty() || card.category == state.categoryFilter)
+        }
     }
     Scaffold(containerColor = BgTop) { pad ->
         SilkGradientBg(Modifier.padding(pad)) {
@@ -542,6 +547,43 @@ fun AllTasksScreen(
                             selected = state.intensityFilter == level,
                             onClick = { onFilter(level) },
                             label = { Text(if (level == 0) label else "♥$label") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AccentDark,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFF3D2433),
+                                labelColor = TextSoft,
+                            ),
+                        )
+                    }
+                }
+                Text(
+                    "Категории",
+                    color = TextSoft.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                ) {
+                    item {
+                        FilterChip(
+                            selected = state.categoryFilter.isEmpty(),
+                            onClick = { onCategoryFilter("") },
+                            label = { Text("Все") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AccentDark,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFF3D2433),
+                                labelColor = TextSoft,
+                            ),
+                        )
+                    }
+                    items(Fantasies.categories) { cat ->
+                        FilterChip(
+                            selected = state.categoryFilter == cat,
+                            onClick = { onCategoryFilter(cat) },
+                            label = { Text("${categoryEmoji(cat)} $cat") },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentDark,
                                 selectedLabelColor = Color.White,
@@ -714,11 +756,11 @@ fun AboutScreen(onBack: () -> Unit) {
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text("Silk Fants · v0.1.0", color = Accent, fontSize = 14.sp)
+                Text("Silk Fants · v0.2.0", color = Accent, fontSize = 14.sp)
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "Карточная игра фантазий для пар.\n" +
-                        "50 мягких эротических заданий без проникновения.\n\n" +
+                        "50 острых эротических заданий без проникновения.\n\n" +
                         "Package: com.artemkz.silkfants\n" +
                         "Kotlin · Jetpack Compose · офлайн\n\n" +
                         "Контент 18+. Личный проект.",

@@ -75,6 +75,10 @@ class FantsViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(intensityFilter = level.coerceIn(0, 3)) }
     }
 
+    fun setCategoryFilter(category: String) {
+        _state.update { it.copy(categoryFilter = category) }
+    }
+
     fun ensureDeckAndShowDraw() {
         _state.update { s ->
             if (s.deckOrder.isEmpty() || s.deckIndex >= s.deckOrder.size) {

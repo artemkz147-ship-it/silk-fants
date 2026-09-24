@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
                             AppScreen.ALL_TASKS -> AllTasksScreen(
                                 state = state,
                                 onFilter = { vm.setIntensityFilter(it) },
+                                onCategoryFilter = { vm.setCategoryFilter(it) },
                                 onBack = { vm.navigate(AppScreen.MAIN_MENU) },
                             )
                             AppScreen.RULES -> RulesScreen(
